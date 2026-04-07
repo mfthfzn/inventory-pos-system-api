@@ -9,8 +9,9 @@ public interface ResetPasswordTokenRepository {
 
   void insert(ResetPasswordToken resetPasswordToken);
 
-  Optional<ResetPasswordToken> findByEmail(String email);
+  Optional<ResetPasswordToken> findByToken(String token);
 
   void removeByEmail(String email);
 
+  void cleanUpTokenExpired();
 }

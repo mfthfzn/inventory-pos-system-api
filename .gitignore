@@ -40,3 +40,4 @@ build/
 .env
 *.log
 /.idea/
+config

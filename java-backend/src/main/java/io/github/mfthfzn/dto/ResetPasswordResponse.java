@@ -1,0 +1,14 @@
+package io.github.mfthfzn.dto;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ResetPasswordResponse {
+
+  private boolean expired;
+
+}

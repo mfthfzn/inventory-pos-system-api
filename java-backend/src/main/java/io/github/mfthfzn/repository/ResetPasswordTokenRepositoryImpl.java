@@ -3,12 +3,10 @@ package io.github.mfthfzn.repository;
 import io.github.mfthfzn.entity.RefreshToken;
 import io.github.mfthfzn.entity.ResetPasswordToken;
 import io.github.mfthfzn.entity.User;
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.EntityManagerFactory;
-import jakarta.persistence.EntityTransaction;
-import jakarta.persistence.PersistenceException;
+import jakarta.persistence.*;
 import lombok.extern.slf4j.Slf4j;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 @Slf4j
@@ -44,16 +42,19 @@ public class ResetPasswordTokenRepositoryImpl implements ResetPasswordTokenRepos
   }
 
   @Override
-  public Optional<ResetPasswordToken> findByEmail(String email) {
+  public Optional<ResetPasswordToken> findByToken(String token) {
     EntityManager entityManager = entityManagerFactory.createEntityManager();
     EntityTransaction transaction = entityManager.getTransaction();
     try {
 
       transaction.begin();
-      ResetPasswordToken resetPasswordToken = entityManager.find(ResetPasswordToken.class, email);
+      TypedQuery<ResetPasswordToken> query = entityManager
+              .createQuery("SELECT t FROM ResetPasswordToken t WHERE t.token = :token", ResetPasswordToken.class)
+              .setParameter("token", token);
+      ResetPasswordToken result = query.getSingleResult();
       transaction.commit();
 
-      return Optional.ofNullable(resetPasswordToken);
+      return Optional.ofNullable(result);
     } catch (Exception exception) {
       if (transaction.isActive()) transaction.rollback();
       log.error(exception.getMessage());
@@ -72,6 +73,29 @@ public class ResetPasswordTokenRepositoryImpl implements ResetPasswordTokenRepos
       transaction.begin();
       entityManager.createQuery("DELETE FROM ResetPasswordToken t WHERE t.email = :email")
               .setParameter("email", email)
+              .executeUpdate();
+      transaction.commit();
+
+    } catch (Exception exception) {
+      if (transaction.isActive()) transaction.rollback();
+      log.error(exception.getMessage());
+      throw new PersistenceException(exception);
+    } finally {
+      entityManager.close();
+    }
+  }
+
+  @Override
+  public void cleanUpTokenExpired() {
+    EntityManager entityManager = entityManagerFactory.createEntityManager();
+    EntityTransaction transaction = entityManager.getTransaction();
+    try {
+
+      LocalDateTime cutOffTime = LocalDateTime.now().minusHours(12);
+
+      transaction.begin();
+      entityManager.createQuery("DELETE FROM ResetPasswordToken t WHERE t.expiredAt < :cutOffTime")
+              .setParameter("cutOffTime", cutOffTime)
               .executeUpdate();
       transaction.commit();
 

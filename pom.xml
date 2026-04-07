@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>io.github.mfthfzn</groupId>
-    <artifactId>manajemen-inventaris</artifactId>
+    <artifactId>inventory-pos-system-api</artifactId>
     <version>1.0.0</version>
     <packaging>pom</packaging>
 

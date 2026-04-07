@@ -23,7 +23,7 @@ public class ResetPasswordToken {
   private String token;
 
   @Column(name = "expired_at", nullable = false)
-  private LocalDateTime localDateTime;
+  private LocalDateTime expiredAt;
 
   @OneToOne
   @MapsId
