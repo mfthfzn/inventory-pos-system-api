@@ -44,6 +44,8 @@ CREATE TABLE reset_password_tokens (
         REFERENCES users(email)
 ) ENGINE=InnoDB;
 
+SELECT * FROM reset_password_tokens;
+
 CREATE TABLE brands (
 	id INT NOT NULL AUTO_INCREMENT,
     name VARCHAR(50) NOT NULL,

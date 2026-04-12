@@ -57,13 +57,13 @@ public class AuthServiceImpl implements AuthService {
 
     ForgotPasswordResponse forgotPasswordResponse = new ForgotPasswordResponse();
     forgotPasswordResponse.setUser(user);
-    forgotPasswordResponse.setLinkResetPassword("http://127.0.0.1:5500/app/users/reset-password/?token=" + token);
+    forgotPasswordResponse.setLinkResetPassword("http://127.0.0.1:5500/users/reset-password/?token=" + token);
 
     return forgotPasswordResponse;
   }
 
   @Override
-  public ResetPasswordResponse validateResetPasswordToken(String token) {
+  public String validateResetPasswordToken(String token) {
     Optional<ResetPasswordToken> resetPasswordTokenOptional = resetPasswordTokenRepository.findByToken(token);
     ResetPasswordToken resetPasswordToken = resetPasswordTokenOptional
             .orElseThrow(() -> new ResetPasswordTokenNotFoundException("Token not found"));
@@ -72,11 +72,18 @@ public class AuthServiceImpl implements AuthService {
       throw new ResetPasswordTokenExpiredException("Token was expired");
     }
 
-    ResetPasswordResponse resetPasswordResponse = new ResetPasswordResponse();
-    resetPasswordResponse.setExpired(false);
-    return resetPasswordResponse;
+    return resetPasswordToken.getEmail();
   }
 
+  @Override
+  public void resetPassword(ResetPasswordRequest resetPasswordRequest) {
+    User user = userRepository.findByEmail(resetPasswordRequest.getEmail())
+            .orElseThrow(() -> new UserNotFoundException("User not found"));
+    user.setPassword(BCrypt.hashpw(resetPasswordRequest.getNewPassword(), BCrypt.gensalt(12)));
+    userRepository.update(user);
+
+    resetPasswordTokenRepository.removeByEmail(user.getEmail());
+  }
 
 
 }

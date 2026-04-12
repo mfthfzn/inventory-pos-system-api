@@ -9,6 +9,6 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class ResetPasswordResponse {
 
-  private boolean expired;
+  private String email;
 
 }

@@ -7,6 +7,7 @@ import jakarta.persistence.*;
 import lombok.extern.slf4j.Slf4j;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 @Slf4j
@@ -31,7 +32,7 @@ public class ResetPasswordTokenRepositoryImpl implements ResetPasswordTokenRepos
       entityManager.persist(resetPasswordToken);
 
       transaction.commit();
-
+      log.info("berhasil insert");
     } catch (Exception exception) {
       if (transaction.isActive()) transaction.rollback();
       log.error(exception.getMessage());
@@ -51,10 +52,10 @@ public class ResetPasswordTokenRepositoryImpl implements ResetPasswordTokenRepos
       TypedQuery<ResetPasswordToken> query = entityManager
               .createQuery("SELECT t FROM ResetPasswordToken t WHERE t.token = :token", ResetPasswordToken.class)
               .setParameter("token", token);
-      ResetPasswordToken result = query.getSingleResult();
+      List<ResetPasswordToken> resultList = query.getResultList();
       transaction.commit();
 
-      return Optional.ofNullable(result);
+      return resultList.stream().findFirst();
     } catch (Exception exception) {
       if (transaction.isActive()) transaction.rollback();
       log.error(exception.getMessage());

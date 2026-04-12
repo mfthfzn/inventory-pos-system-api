@@ -68,7 +68,6 @@ public class EmailServiceImpl implements EmailService {
         log.info("Email reset password has been sent to : {}", toAddress);
 
       } catch (MessagingException e) {
-        e.printStackTrace();
         log.error(e.getMessage());
         throw new RuntimeException("Failed to send a email : " + e.getMessage());
       }

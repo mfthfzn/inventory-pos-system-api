@@ -8,6 +8,8 @@ public interface AuthService {
 
   ForgotPasswordResponse processForgotPassword(ForgotPasswordRequest forgotPasswordRequest);
 
-  ResetPasswordResponse validateResetPasswordToken(String token);
+  String validateResetPasswordToken(String token);
+
+  void resetPassword(ResetPasswordRequest resetPasswordRequest);
 
 }
