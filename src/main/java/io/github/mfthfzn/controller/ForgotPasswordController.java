@@ -2,13 +2,16 @@ package io.github.mfthfzn.controller;
 
 import io.github.mfthfzn.dto.ForgotPasswordRequest;
 import io.github.mfthfzn.dto.ForgotPasswordResponse;
+import io.github.mfthfzn.exception.TooManyRequestedException;
 import io.github.mfthfzn.exception.UserNotFoundException;
 import io.github.mfthfzn.repository.ResetPasswordTokenRepository;
 import io.github.mfthfzn.repository.ResetPasswordTokenRepositoryImpl;
 import io.github.mfthfzn.repository.UserRepository;
 import io.github.mfthfzn.repository.UserRepositoryImpl;
 import io.github.mfthfzn.service.*;
+import io.github.mfthfzn.util.IpUtil;
 import io.github.mfthfzn.util.JpaUtil;
+import io.github.mfthfzn.util.RedisUtil;
 import io.github.mfthfzn.util.ValidatorUtil;
 import jakarta.persistence.PersistenceException;
 import jakarta.servlet.ServletException;
@@ -25,35 +28,45 @@ import java.util.Set;
 @Slf4j
   public class ForgotPasswordController extends BaseController {
 
-  ResetPasswordTokenRepository resetPasswordTokenRepository = new ResetPasswordTokenRepositoryImpl(
+  private final ResetPasswordTokenRepository resetPasswordTokenRepository = new ResetPasswordTokenRepositoryImpl(
           JpaUtil.getEntityManagerFactory()
   );
 
-  UserRepository userRepository = new UserRepositoryImpl(
+  private final UserRepository userRepository = new UserRepositoryImpl(
           JpaUtil.getEntityManagerFactory()
   );
 
-  AuthService authService = new AuthServiceImpl(userRepository, resetPasswordTokenRepository);
+  private final AuthService authService = new AuthServiceImpl(userRepository, resetPasswordTokenRepository);
 
-  EmailService emailService = new EmailServiceImpl();
+  private final EmailService emailService = new EmailServiceImpl();
+
+  private final RateLimiterService rateLimiterService =
+          new RateLimiterServiceImpl(
+                  RedisUtil.getConnection().sync()
+          );
 
   @Override
   protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-    String email = req.getParameter("email");
-    ForgotPasswordRequest forgotPasswordRequest = new ForgotPasswordRequest(email);
-    Set<ConstraintViolation<Object>> constraintViolations = ValidatorUtil.validate(forgotPasswordRequest);
-
-    if (!constraintViolations.isEmpty()) {
-      for (ConstraintViolation<Object> constraintViolation : constraintViolations) {
-        sendError(resp, HttpServletResponse.SC_BAD_REQUEST, "Data request invalid", Map.of(
-                "message", constraintViolation.getMessage()
-        ));
-        break;
-      }
-      return;
-    }
-
     try {
+
+      if (!rateLimiterService.isAllowed(IpUtil.getClientIpAddress(req))) {
+        throw new TooManyRequestedException("Too many request!");
+      }
+
+      String email = req.getParameter("email");
+      ForgotPasswordRequest forgotPasswordRequest = new ForgotPasswordRequest(email);
+      Set<ConstraintViolation<Object>> constraintViolations = ValidatorUtil.validate(forgotPasswordRequest);
+
+      if (!constraintViolations.isEmpty()) {
+        for (ConstraintViolation<Object> constraintViolation : constraintViolations) {
+          sendError(resp, HttpServletResponse.SC_BAD_REQUEST, "Data request invalid", Map.of(
+                  "message", constraintViolation.getMessage()
+          ));
+          break;
+        }
+        return;
+      }
+
       ForgotPasswordResponse forgotPasswordResponse = authService.processForgotPassword(forgotPasswordRequest);
       emailService.sendResetPasswordLink(
               forgotPasswordResponse.getUser().getName(), email, forgotPasswordResponse.getLinkResetPassword()
@@ -62,6 +75,10 @@ import java.util.Set;
               Map.of(
                       "message", "Success send email if your email registered"
               ));
+    } catch (TooManyRequestedException tooManyRequestedException) {
+      sendError(resp, 429, "Slow down!", Map.of(
+              "message", tooManyRequestedException.getMessage()
+      ));
     } catch (UserNotFoundException userNotFoundException) {
       sendSuccess(resp, HttpServletResponse.SC_OK, "Success to send email",
               Map.of(

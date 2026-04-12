@@ -28,7 +28,6 @@ public class TokenServiceImpl implements TokenService {
 
   private static final String CLAIM_ROLE = "role";
   private static final String CLAIM_NAME = "name";
-  private static final String CLAIM_STORE_ID = "store_id";
   private static final String CLAIM_STORE_NAME = "store_name";
 
   private static final long ACCESS_TOKEN_EXPIRY_MINUTES = 60;
@@ -88,6 +87,7 @@ public class TokenServiceImpl implements TokenService {
               .build()
               .verify(token);
     } catch (TokenExpiredException tokenExpiredException) {
+      // Throw RefreshTokenExpiredException
       throw new RefreshTokenExpiredException("Refresh token expired");
     } catch (JWTVerificationException jwtVerificationException) {
       throw  new JWTVerificationException("Refresh token invalid");
@@ -100,10 +100,11 @@ public class TokenServiceImpl implements TokenService {
       JWT.require(algorithm)
               .build()
               .verify(token);
-    } catch (AccessTokenExpiredException accessTokenExpiredException) {
+    } catch (TokenExpiredException tokenExpiredException) {
+      // Throw AccessTokenExpiredException
       throw new AccessTokenExpiredException("Access token expired");
     } catch (JWTVerificationException jwtVerificationException) {
-      throw  new JWTVerificationException("Access Token invalid.");
+      throw  new JWTVerificationException("Access Token invalid");
     }
   }
 
@@ -114,8 +115,8 @@ public class TokenServiceImpl implements TokenService {
 
     UserResponse userResponse = new UserResponse();
 
-    userResponse.setStoreName(decodedJWT.getClaim("store_name").asString());
     userResponse.setEmail(decodedJWT.getSubject());
+    userResponse.setStoreName(decodedJWT.getClaim("store_name").asString());
     userResponse.setRole(decodedJWT.getClaim("role").asString());
     userResponse.setName(decodedJWT.getClaim("name").asString());
     return userResponse;

@@ -5,9 +5,12 @@ import io.lettuce.core.api.sync.RedisCommands;
 
 public class RateLimiterServiceImpl implements RateLimiterService {
 
-  private final RedisCommands<String, String> commands = RedisUtil.getConnection().sync();
+  private final RedisCommands<String, String> commands;
 
   private final int LIMIT_DURATION = 60;
+  public RateLimiterServiceImpl(RedisCommands<String, String> commands) {
+    this.commands = commands;
+  }
 
   @Override
   public boolean isAllowed(String ipAddress) {
